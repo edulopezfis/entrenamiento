@@ -62,7 +62,7 @@ function applyHang(){
   const phases=[["Calentamiento · agarres superiores",20],["Descanso",20],["40 mm · activación",30],["Descanso",30],["40 mm · activación",20],["Descanso",30]];
   for(let i=0;i<useSets;i++){phases.push(["17 mm · fuerza",use17],["Descanso",use17Rest]);}
   phases.pop();
-  if(use20>0){phases.push(["20 mm bidedos + goma",use20]);if(useSets>1)phases.push(["Descanso",use20Rest],["20 mm bidedos + goma",use20]);}
+  if(use20>0){for(let i=0;i<useSets;i++){phases.push(["20 mm bidedos + goma",use20]);if(i<useSets-1)phases.push(["Descanso",use20Rest]);}}
   s.phases=phases;s.rounds=1;
   s.details=[level==="custom"?"Configuración personalizada":"Nivel "+level,s.phases.filter(x=>x[0].includes("17 mm")).length+" suspensiones en 17 mm",use20>0?useSets+" bloques de bidedos asistidos":"Sin bidedos en este nivel","Mantener 1–2 s de margen: ajustar goma/carga antes de llegar al fallo","La tabla es la opción preferente; la barra queda para agarre general"];
   idx=0;round=1;remaining=s.phases[0][1];stop();update();
