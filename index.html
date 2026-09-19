@@ -5,17 +5,74 @@
 const sessions=[
 {id:"density",name:"🧗 Densidad · Rocódromo A",meta:"3 × 8 min / 4 min descanso",phases:[["Muro de densidad",480],["Descanso",240]],rounds:3,details:["3 × 8 min de muro de densidad","4 min de descanso","Intensidad aproximada: 5c–6a","Buscar economía de movimiento"]},
 {id:"power",name:"🧗 Resistencia de potencia · Rocódromo B",meta:"4 × 2 min / 2 min descanso",phases:[["Trabajo",120],["Descanso",120]],rounds:4,details:["4 × (2 min trabajo + 2 min descanso)","Intensidad aproximada: 6b+/6c","No llegar al fallo absoluto"]},
-{id:"hang",name:"🖐️ Suspensiones",meta:"configurable",phases:[["Trabajo",7],["Descanso",53]],rounds:6,details:["Sesión progresiva configurable","RPE objetivo inicial: 7/10","Preferencia: tabla de suspensiones; barra solo como alternativa"]},
+{id:"hang",name:"🖐️ Suspensiones",meta:"progresiva y configurable",phases:[["Calentamiento · agarres superiores",20],["Descanso",20],["40 mm · activación",30],["Descanso",30],["40 mm · activación",20],["Descanso",30],["17 mm · fuerza",10],["Descanso",50],["17 mm · fuerza",10],["Descanso",50],["20 mm bidedos + goma",8],["Descanso",50],["20 mm bidedos + goma",8]],rounds:1,details:["Progresión: calentamiento → 40 mm → 17 mm → bidedos asistidos","17 mm: trabajo principal de fuerza","20 mm bidedos: usar goma suficiente para no llegar al fallo","RPE orientativo: 7–8/10"]},
 {id:"pull",name:"💪 Dominada lastrada",meta:"6 min · fuerza",phases:[["Dominadas lastradas",3],["Descanso",45],["Escapulares",2],["Descanso",30]],rounds:4,details:["4 rondas","3 dominadas lastradas","2–3 dominadas escapulares","Dejar 2–3 repeticiones en reserva"]},
 {id:"one",name:"🦾 One-arm + hombro",meta:"6 min · progresión",phases:[["Bloqueo asistido",10],["Descanso",30],["Dominada asistida",20],["Descanso",30]],rounds:3,details:["3 rondas","8–10 s de bloqueo asistido por lado","3–5 dominadas asistidas por lado","Control y calidad, no fallo"]},
 {id:"legs",name:"🦵 Piernas + core",meta:"6 min · 40 s / 20 s",phases:[["Goblet squat",40],["Transición",20],["Zancadas alternas",40],["Transición",20],["Peso muerto rumano",40],["Transición",20],["Gemelos",40],["Transición",20],["Hollow / dead bug",40],["Transición",20],["Elevaciones de rodillas",40],["Transición",20]],rounds:1,details:["6 ejercicios","40 s trabajo + 20 s transición","Goblet squat · zancadas · RDL","Gemelos · hollow/dead bug · rodillas colgado"]},
 {id:"mu",name:"💥 Muscle-up",meta:"8 min · potencia",phases:[["Dominadas explosivas",30],["Descanso",90],["Fondos",30],["Descanso",60],["Transiciones con banda",30],["Descanso",60]],rounds:3,details:["Dominadas explosivas: 4 × 3","Fondos: 3 × 5–8","Transiciones con banda: 3 × 3","Descansos amplios y ejecución explosiva"]}];
-let selected=null,idx=0,remaining=0,round=1,timer=null,running=false;const $=id=>document.getElementById(id);
+
+let selected=null,idx=0,remaining=0,round=1,timer=null,running=false;
+const $=id=>document.getElementById(id);
+
 function render(){$("sessions").innerHTML=sessions.map((s,i)=>"<button class=\"session "+(selected===i?"active":"")+" \" onclick=\"selectSession("+i+")\"><strong>"+s.name+"</strong><span>"+s.meta+"</span></button>").join("")}
+
 function selectSession(i){stop();selected=i;idx=0;round=1;remaining=sessions[i].phases[0][1];render();renderSettings();update()}
-function renderSettings(){if(selected===null){$("settings").innerHTML="";return}const s=sessions[selected];if(s.id!=="hang"){$("settings").innerHTML="";return}$("settings").innerHTML='<h2>⚙️ Ajustar suspensiones</h2><div class="settings-grid"><div class="field"><label>Tiempo de suspensión (s)</label><input id="hangWork" type="number" min="3" max="30" value="7"></div><div class="field"><label>Descanso (s)</label><input id="hangRest" type="number" min="10" max="180" value="53"></div><div class="field"><label>Número de suspensiones</label><input id="hangRounds" type="number" min="1" max="20" value="6"></div><div class="field"><label>Modo</label><select id="hangMode"><option>Tabla de suspensiones</option><option>Barra</option></select></div></div><button class="btn" style="margin-top:10px;width:100%" onclick="applyHang()">Aplicar cambios</button>'}
-function applyHang(){const w=Math.max(3,parseInt($("hangWork").value)||7),r=Math.max(10,parseInt($("hangRest").value)||53),n=Math.max(1,parseInt($("hangRounds").value)||6),mode=$("hangMode").value;const s=sessions[selected];s.phases=[["Suspensión",w],["Descanso",r]];s.rounds=n;s.details=[n+" × ("+w+" s suspensión + "+r+" s descanso)",mode==="Barra"?"Barra: agarre general; no sustituye a la tabla para fuerza específica":"Tabla: opción preferente para fuerza específica de dedos","RPE objetivo: 7/10","Ajusta carga/asistencia para terminar con margen, sin fallo"];idx=0;round=1;remaining=w;stop();update();render()}
-function update(){if(selected===null){$("phase").textContent="Selecciona una sesión";$("time").textContent="00:00";$("round").textContent="—";$("details").innerHTML="";return}const s=sessions[selected],p=s.phases[idx];$("phase").textContent=p[0];$("time").textContent=format(remaining);$("round").textContent=s.rounds>1?"Ronda "+round+" / "+s.rounds:"Sesión única";$("detailTitle").textContent=s.name;$("details").innerHTML=s.details.map(x=>"<li>"+x+"</li>").join("")}
+
+function renderSettings(){
+  if(selected===null){$("settings").innerHTML="";return}
+  const s=sessions[selected];
+  if(s.id!=="hang"){$("settings").innerHTML="";return}
+  $("settings").innerHTML='<h2>⚙️ Ajustar suspensiones</h2><div class="settings-grid">'+
+  '<div class="field"><label>Nivel</label><select id="hangLevel"><option value="suave">🟢 Suave</option><option value="normal" selected>🟠 Normal</option><option value="fuerte">🔴 Fuerte</option><option value="custom">⚙️ Personalizado</option></select></div>'+
+  '<div class="field"><label>N.º de bloques finales</label><input id="hangSets" type="number" min="1" max="6" value="2"></div>'+
+  '<div class="field"><label>Tiempo 17 mm (s)</label><input id="hang17" type="number" min="5" max="20" value="10"></div>'+
+  '<div class="field"><label>Descanso 17 mm (s)</label><input id="hang17Rest" type="number" min="20" max="120" value="50"></div>'+
+  '<div class="field"><label>Tiempo bidedos + goma (s)</label><input id="hang20" type="number" min="5" max="20" value="8"></div>'+
+  '<div class="field"><label>Descanso bidedos (s)</label><input id="hang20Rest" type="number" min="20" max="120" value="50"></div>'+
+  '</div><button class="btn" style="margin-top:10px;width:100%" onclick="applyHang()">Aplicar cambios</button>';
+  $("hangLevel").onchange=updateHangPreset;
+}
+
+function updateHangPreset(){
+  const level=$("hangLevel").value;
+  const presets={
+    suave:{w17:8,r17:55,w20:0,r20:55,sets:1},
+    normal:{w17:10,r17:50,w20:8,r20:50,sets:2},
+    fuerte:{w17:10,r17:45,w20:10,r20:50,sets:2}
+  };
+  const p=presets[level];
+  if(!p)return;
+  $("hang17").value=p.w17;$("hang17Rest").value=p.r17;$("hang20").value=p.w20;$("hang20Rest").value=p.r20;$("hangSets").value=p.sets;
+}
+
+function applyHang(){
+  const level=$("hangLevel").value;
+  const p={suave:{w17:8,r17:55,w20:0,r20:55,sets:1},normal:{w17:10,r17:50,w20:8,r20:50,sets:2},fuerte:{w17:10,r17:45,w20:10,r20:50,sets:2}}[level];
+  const w17=Math.max(5,Math.min(20,parseInt($("hang17").value)||10));
+  const r17=Math.max(20,Math.min(120,parseInt($("hang17Rest").value)||50));
+  const w20=Math.max(5,Math.min(20,parseInt($("hang20").value)||8));
+  const r20=Math.max(20,Math.min(120,parseInt($("hang20Rest").value)||50));
+  const sets=Math.max(1,Math.min(6,parseInt($("hangSets").value)||2));
+  const s=sessions[selected];
+  const use17=level==="custom"?w17:p.w17;
+  const use17Rest=level==="custom"?r17:p.r17;
+  const use20=level==="custom"?w20:p.w20;
+  const use20Rest=level==="custom"?r20:p.r20;
+  const useSets=level==="custom"?sets:p.sets;
+  const phases=[["Calentamiento · agarres superiores",20],["Descanso",20],["40 mm · activación",30],["Descanso",30],["40 mm · activación",20],["Descanso",30]];
+  for(let i=0;i<useSets;i++){phases.push(["17 mm · fuerza",use17],["Descanso",use17Rest]);}
+  phases.pop();
+  if(use20>0){phases.push(["20 mm bidedos + goma",use20]);if(useSets>1)phases.push(["Descanso",use20Rest],["20 mm bidedos + goma",use20]);}
+  s.phases=phases;s.rounds=1;
+  s.details=[level==="custom"?"Configuración personalizada":"Nivel "+level,s.phases.filter(x=>x[0].includes("17 mm")).length+" suspensiones en 17 mm",use20>0?useSets+" bloques de bidedos asistidos":"Sin bidedos en este nivel","Mantener 1–2 s de margen: ajustar goma/carga antes de llegar al fallo","La tabla es la opción preferente; la barra queda para agarre general"];
+  idx=0;round=1;remaining=s.phases[0][1];stop();update();
+}
+
+function update(){
+  if(selected===null){$("phase").textContent="Selecciona una sesión";$("time").textContent="00:00";$("round").textContent="—";$("details").innerHTML="";return}
+  const s=sessions[selected],p=s.phases[idx];
+  $("phase").textContent=p[0];$("time").textContent=format(remaining);$("round").textContent=s.rounds>1?"Ronda "+round+" / "+s.rounds:"Sesión única";$("detailTitle").textContent=s.name;$("details").innerHTML=s.details.map(x=>"<li>"+x+"</li>").join("")
+}
 function format(n){return String(Math.floor(n/60)).padStart(2,"0")+":"+String(n%60).padStart(2,"0")}
 let audioCtx=null;
 function ensureAudio(){try{if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume()}catch(e){}}
@@ -24,6 +81,7 @@ function start(){if(selected===null||running)return;ensureAudio();beep(700,.16,.
 function stop(){running=false;if(timer){clearInterval(timer);timer=null}}
 function tick(){remaining--;if(remaining>0){if(remaining<=3)beep(560,.13,.38);update();return}beep(1050,.28,.48);nextPhase()}
 function nextPhase(){const s=sessions[selected];idx++;if(idx>=s.phases.length){idx=0;round++;if(round>s.rounds){stop();remaining=0;$("phase").textContent="✅ Sesión completada";$("round").textContent="";return}}remaining=s.phases[idx][1];update()}
-function reset(){stop();if(selected!==null){idx=0;round=1;remaining=sessions[selected].phases[0][1]}update()}$("start").onclick=start;$("pause").onclick=stop;$("reset").onclick=reset;render();update();
+function reset(){stop();if(selected!==null){idx=0;round=1;remaining=sessions[selected].phases[0][1]}update()}
+$("start").onclick=start;$("pause").onclick=stop;$("reset").onclick=reset;render();update();
 const preset=new URLSearchParams(location.search).get("s");if(preset){const n=sessions.findIndex(x=>x.id===preset);if(n>=0)selectSession(n)}
 </script></body></html>
